@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<launch>
+  <env name="ROSCONSOLE_CONFIG_FILE" value="$(find agv)/config/rosconsole.config"/>
+
+  <!-- Lane Publisher -->
+  <node name="lane_publisher" pkg="agv" type="lane_publisher" output="screen">
+    <param name="path_filename_topic" value="/path_filename_topic"/> 
+    <param name="lane_info_topic" value="/lane_info_topic"/>
+    <param name="left_boundary_xa_topic" value="/left_boundary_xa_topic"/>
+    <param name="left_boundary_ax_topic" value="/left_boundary_ax_topic"/>
+    <param name="right_boundary_topic" value="/right_boundary_topic"/>
+    <param name="centerline_topic" value="/centerline_topic"/>
+    <param name="waypoints_info_topic" value="/waypoints_info_topic"/>
+    <param name="lanes_directory" value="$(find agv)/lanes/"/>   
+  </node>
+
+</launch>

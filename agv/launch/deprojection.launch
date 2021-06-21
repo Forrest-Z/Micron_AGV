@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<launch>
+  <env name="ROSCONSOLE_CONFIG_FILE" value="$(find agv)/config/rosconsole.config"/>
+
+<!-- TX2 Server Socket  -->
+  <node name="tx2_communication_server" pkg="agv" type="socket_server.py" args="192.168.1.142 8889" output="screen"/>
+
+
+<!-- sensor fusion -->
+  <node name="deprojection" pkg="agv" type="deprojection" output="screen">
+    
+    <!-- Hyperparameters -->
+    <param name="deprojection_frequency"            value="20"/>
+
+    <param name="odom_topic"                  value="/odometry/filtered"/>
+    <param name="camera_obstacle_topic"       value="/detection_results"/>
+    <param name="deprojection_topic"          value="/deprojection_results"/>
+  </node>
+
+
+</launch>

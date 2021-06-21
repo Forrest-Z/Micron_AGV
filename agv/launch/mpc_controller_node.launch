@@ -1,0 +1,49 @@
+<?xml version="1.0"?>
+<launch>
+  <env name="ROSCONSOLE_CONFIG_FILE" value="$(find agv)/config/rosconsole.config"/>
+
+<!-- Model Predictive Control -->
+  <node name="mpc_controller_node" pkg="agv" type="mpc_controller_node" output="screen">
+    
+    <!-- Input Topic Names -->
+    <param name="odom_topic"                      value="/odometry/filtered"/>
+    <param name="path_topic"                      value="/output_path"/>
+    <param name="cmd_topic"                       value="/behaviour_cmd_vel"/>
+    <!-- Output Topic Names -->
+    <param name="steering_angle_topic"            value="/mpc_steering"/>
+    <param name="control_output_topic"            value="/nav_cmd_vel"/>
+    
+    <!-- Hyperparameters -->
+    <param name="mpc_frequency"                   value="10.0"/>
+    <param name="prediction_horizon"              value="25"/>
+    <param name="control_horizon"                 value="5"/>
+    <param name="sample_time"                     value="0.2"/>
+
+    <!-- Path Related Parameters -->
+    <param name="max_path_size"                   value="15"/>
+    <param name="min_path_size"                   value="5"/>
+    <param name="order_of_poly"                   value="3"/>
+
+    <!-- Vehicle Model Params -->
+    <param name="baselink_to_front_axle_length"   value="2.2"/>
+    <param name="front_to_cog_length"             value="1.1"/>
+    
+    <!-- Weights -->
+    <param name="cross_track_error_weight"        value="1.0"/>
+    <param name="orientation_error_weight"        value="1.0"/>
+    <param name="speed_diff_error_weight"         value="1.0"/>
+
+    <param name="steering_usage_weight"           value="10.0"/>
+    <param name="acceleration_usage_weight"       value="1.0"/>
+
+    <param name="steering_smoothness_weight"      value="50.0"/>
+    <param name="acceleration_smoothness_weight"  value="1.0"/>
+
+    <!-- Hard Constraints -->
+    <param name="max_steering_angle"              value="0.336"/>
+    <param name="max_acceleration"                value="1.0"/>
+    <param name="max_deceleration"                value="-3.0"/>
+
+  </node>
+
+</launch>

@@ -1,0 +1,372 @@
+<?xml version="1.0"?>
+<launch>
+  <env name="ROSCONSOLE_CONFIG_FILE" value="$(find agv)/config/rosconsole.config"/>
+
+  <!-- Reinitialisation node. Perfoms automatic relocalisation on startup -->
+  <node name="reinit" pkg="agv" type="reinit" output="screen">
+    <param name="amcl_pose_topic" value="/amcl_pose"/>
+    <param name="initialpose_topic" value="/initialpose"/>
+    <param name="file_name" value="/reinit.txt"/> <!-- Of home directory-->
+    <param name="frame_id" value="map"/>
+  </node>
+
+  <!--Health Monitor Node -->
+  <node name="health_monitor_node" respawn="true" pkg="agv" type="health_monitor" output="screen">
+    <param name="sample_period" value="0.5"/>
+    
+    <param name="imu_topic" value="/imu/data"/>
+    <param name="imu_expected_hz" value="40"/>
+    <param name="velodyne_points_topic" value="/velodyne_points"/>
+    <param name="velodyne_points_expected_hz" value="10"/>
+    <param name="front_scan_topic" value="/front_scan"/>
+    <param name="front_scan_expected_hz" value="15"/>
+    <param name="left_scan_topic" value="/left_scan"/>
+    <param name="left_scan_expected_hz" value="15"/>
+    <param name="right_scan_topic" value="/right_scan"/>
+    <param name="right_scan_expected_hz" value="15"/>
+
+    <param name="brake_topic" value="/brake_health"/>
+    <param name="brake_expected_hz" value="10"/>
+    <param name="steering_topic" value="/steering_health"/>
+    <param name="steering_expected_hz" value="10"/>
+
+    <param name="health_monitor_topic" value="/health_monitor"/>
+
+    <!-- The health monitor will publish bad health, if for any topic the message count dips below this percentage -->
+    <param name="health_threshold" value="0.5"/> 
+  </node>
+
+  <!-- IMU -->
+  <node name="microstrain_3dm_gx5_25_node" pkg="microstrain_3dm_gx5_45" type="microstrain_3dm_gx5_45_node" output="screen">
+    <param name="port" value="/dev/microstrain"/>
+    <param name="baudrate" value="115200"/>
+    <param name="device_setup" value="true"/>
+    <param name="readback_settings" value="true"/>
+    <param name="save_settings" value="true"/>
+    <param name="auto_init" value="true"/>
+    <param name="publish_imu" value="true"/>
+    <param name="imu_rate" value="40"/>
+    <param name="imu_frame_id" value="imu_link"/>
+    <param name="publish_gps" value="false"/>
+    <param name="publish_odom" value="false"/>
+  </node>
+
+  <node name="imu_broadcaster" pkg="tf2_ros" type="static_transform_publisher" args="0 0 1.65 0 0 0 base_link imu_link" />
+
+
+  <!-- Arduino -->
+  <node name="arduino_serial_node1" pkg="rosserial_python" type="serial_node.py" args="/dev/Arduino1"/>
+  <node name="arduino_serial_node2" pkg="rosserial_python" type="serial_node.py" args="/dev/Arduino2"/>
+  <node name="arduino_serial_node3" pkg="rosserial_python" type="serial_node.py" args="/dev/Arduino3"/>
+
+
+  <!-- Encoders -->
+  <node name="arduino_encoder_timer" pkg="agv" type="arduino_encoder_timer">
+    <param name="raw_left_encoder_count_topic" value="/raw_encoder_count_left"/>
+    <param name="raw_right_encoder_count_topic" value="/raw_encoder_count_right"/>
+    <param name="encoder_timer_topic" value="/encoder_timer"/>
+    <param name="timer_period" value="0.05"/>
+    <param name="encoder_count_publish_topic" value="/encoder_count"/>
+  </node>
+  
+  <node name="encoder_odometry_system" pkg="agv" type="encoder_odometry_system" output="screen">
+    <param name="encoder_count_topic" value="/encoder_count"/>
+    <param name="imu_topic" value="/imu/data"/>
+    <param name="odom_from_encoder_topic" value="/odometry/encoder"/>
+    <param name="encoder_x_coordinate" value="0.0"/>
+    <param name="encoder_y_coordinate" value="0.0"/>
+    <param name="buggy_unit_number" value="3.0"/>
+  </node>
+
+
+  <!-- EKF Odometry Fusion   -->
+  <node name="kf_localization_node" pkg="robot_localization" type="ekf_localization_node" output="screen">
+    <param name="odom_frame" value="odom"/>
+    <param name="base_link_frame" value="base_link"/>
+    <param name="world_frame" value="odom"/>
+    <param name="two_d_mode" value="true"/>
+    <param name="odom0" value="/odometry/encoder"/>
+    <rosparam param="odom0_config">
+      [true, true, false,
+       false, false, true,
+       true, false, false,
+       false, false, true,
+       false, false, false]
+    </rosparam>
+    <param name="imu0" value="/imu/data"/>
+    <rosparam param="imu0_config">
+      [false, false, false,
+       false, false, false,
+       false, false, false,
+       false, false, true,
+       false, false, false]
+    </rosparam>
+  </node>
+
+
+  <!-- Joystick -->
+  <node respawn="true" pkg="joy" type="joy_node" name="joy">
+    <param name="dev" value="/dev/input/js0" />
+    <param name="deadzone" value="0.05" />
+  </node>
+
+
+  <!-- Joystick Teleop -->
+  <node name="joystick_teleop" pkg="agv" type="joystick_teleop" output="screen">
+    <param name="joy_topic" value="/joy"/>
+    <param name="autonomous_cmd_vel_in_topic" value="/nav_cmd_vel"/>
+    <param name="cmd_vel_out_topic" value="/cmd_vel_out"/>
+    <param name="health_monitor_topic" value="/health_monitor"/>
+  </node>
+  
+
+  <!-- Dynamixel Steering  -->
+  <node name="dynamixel_steering_controller" pkg="agv" type="dynamixel_steering_controller_proplus" output="screen" respawn="true">
+    <param name="dxl_id" value="1"/>
+    <param name="device_port" value="/dev/dynamixelU2D2_2"/>
+    <param name="baud_rate" value="57600"/>
+    
+    <param name="controller_msg_topic" value="/cmd_vel_out"/>
+    <param name="present_steering_angle_topic" value="/present_steering_angle"/>
+    <param name="steering_health_topic" value="/steering_health"/>
+    <param name="publish_steering_period" value="0.1"/>
+    
+    <param name="wheel_center_offset" value="-0.017"/>
+  </node>
+
+  <!-- Dynamixel Brakes  -->
+   <!-- How to set the goal position:  if current braking, set to a value that exceeds the maximum position the brake can go.
+                                        if position braking, set to the actual maximum position that the brake can go. -->
+   
+  <node name="dynamixel_brake_controller" pkg="agv" type="dynamixel_brake_controller" output="screen" respawn="true">
+    <param name="dxl_id" value="13"/>
+    <param name="device_port" value="/dev/dynamixelU2D2_1"/>
+    <param name="baud_rate" value="57600"/>
+
+    <param name="controller_msg_topic" value="/cmd_vel_out"/>
+    <param name="brake_health_topic" value="/brake_health"/>
+    
+    <param name="goal_current_limit" value="1400"/>    
+    <param name="goal_speed" value="2900"/>
+    <param name="p" value="48"/>
+    <param name="i" value="0"/>
+    <param name="d" value="32"/>
+
+    <param name="is_current_control" value="1"/> 
+    <param name="goal_position_current_braking" value="280000"/>
+    <param name="goal_position_position_braking" value="440000"/>
+
+    <param name="default_position" value="70000"/>
+
+    <param name="brake_health_period" value="0.1"/>
+  </node> 
+
+
+
+
+  <!--Velodyne VLP-16 3D Lidar-->
+  <!-- declare arguments with default values -->
+  <arg name="calibration" default="$(find velodyne_pointcloud)/params/VLP16db.yaml"/>
+  <arg name="device_ip" default="" />
+  <arg name="frame_id" default="velodyne" />
+  <arg name="manager" default="$(arg frame_id)_nodelet_manager" />
+  <arg name="max_range" default="130.0" />
+  <arg name="min_range" default="1.3" />
+  <arg name="pcap" default="" />
+  <arg name="port" default="2368" />
+  <arg name="read_fast" default="false" />
+  <arg name="read_once" default="false" />
+  <arg name="repeat_delay" default="0.0" />
+  <arg name="rpm" default="600.0" />
+  <arg name="cut_angle" default="-0.01" />
+  <arg name="laserscan_ring" default="-1" />
+  <arg name="laserscan_resolution" default="0.007" />
+
+  <!-- start nodelet manager and driver nodelets -->
+  <include file="$(find velodyne_driver)/launch/nodelet_manager.launch">
+    <arg name="device_ip" value="$(arg device_ip)"/>
+    <arg name="frame_id" value="$(arg frame_id)"/>
+    <arg name="manager" value="$(arg manager)" />
+    <arg name="model" value="VLP16"/>
+    <arg name="pcap" value="$(arg pcap)"/>
+    <arg name="port" value="$(arg port)"/>
+    <arg name="read_fast" value="$(arg read_fast)"/>
+    <arg name="read_once" value="$(arg read_once)"/>
+    <arg name="repeat_delay" value="$(arg repeat_delay)"/>
+    <arg name="rpm" value="$(arg rpm)"/>
+    <arg name="cut_angle" value="$(arg cut_angle)"/>
+  </include>
+
+  <!-- start cloud nodelet -->
+  <include file="$(find velodyne_pointcloud)/launch/cloud_nodelet.launch">
+    <arg name="calibration" value="$(arg calibration)"/>
+    <arg name="manager" value="$(arg manager)" />
+    <arg name="max_range" value="$(arg max_range)"/>
+    <arg name="min_range" value="$(arg min_range)"/>
+  </include>
+
+  <!-- start laserscan nodelet -->
+  <include file="$(find velodyne_pointcloud)/launch/laserscan_nodelet.launch">
+    <arg name="manager" value="$(arg manager)" />
+    <arg name="ring" value="$(arg laserscan_ring)"/>
+    <arg name="resolution" value="$(arg laserscan_resolution)"/>
+  </include>
+  <!-- Velodyne VLP-16 3D Lidar END -->
+
+
+  <!-- Front Sick571 Lidar -->
+  <node name="front_lidar_node" pkg="sick_tim" type="sick_tim551_2050001" respawn="false" output="screen">
+    <param name="hostname" type="string" value="192.168.1.14"/>
+    <param name="port" type="string" value="2112"/>
+    <param name="timelimit" type="int" value="5"/>
+    <param name="frame_id" type="str" value="front_scan"/>
+    <param name="min_ang" type="double" value="-1.770796"/>
+    <param name="max_ang" type="double" value="1.770796"/>
+    <remap from="scan" to="/front_scan"/>
+  </node>
+
+  <node name="baselink_to_front_lidar" pkg="tf2_ros" type="static_transform_publisher" args="2.45 0 0.5 0 0 0 base_link front_scan" output="screen"/>
+
+  <!-- Left Sick551 Lidar -->
+  <node name="left_lidar_node" pkg="sick_tim" type="sick_tim551_2050001" respawn="false" output="screen">
+    <param name="hostname" type="string" value="192.168.1.7"/>
+    <param name="port" type="string" value="2112"/>
+    <param name="timelimit" type="int" value="5"/>
+    <param name="frame_id" type="str" value="left_scan"/>
+    <param name="min_ang" type="double" value="-2.15"/>
+    <param name="max_ang" type="double" value="2.3"/>
+    <remap from="scan" to="/left_scan"/>
+  </node> 
+
+  <node name="baselink_to_left_lidar" pkg="tf2_ros" type="static_transform_publisher" args=" -0.25 0.60 0.7 2.356 0 0 base_link left_scan" output="screen"/>
+
+  <!--Right Sick551 Lidar -->
+  <node name="right_lidar_node" pkg="sick_tim" type="sick_tim551_2050001" respawn="false" output="screen">
+    <param name="hostname" type="string" value="192.168.1.2"/>
+    <param name="port" type="string" value="2112"/>
+    <param name="timelimit" type="int" value="5"/>
+    <param name="frame_id" type="str" value="right_scan"/>
+    <param name="min_ang" type="double" value="-2.3"/>
+    <param name="max_ang" type="double" value="2.15"/>
+    <remap from="scan" to="/right_scan"/>
+  </node>
+
+  <node name="baselink_to_right_lidar" pkg="tf2_ros" type="static_transform_publisher" args=" -0.25 -0.60 0.7 -2.356 0 0 base_link right_scan" output="screen"/>
+
+  <!--3x 2D Lidar Fusion-->
+  <node pkg="ira_laser_tools" name="laserscan_multi_merger" type="laserscan_multi_merger" output="screen">
+		<param name="destination_frame" value="/base_link"/>
+		<param name="cloud_destination_topic" value="/merged_cloud"/>
+		<param name="scan_destination_topic" value="/2d_scan"/>
+    <param name="laserscan_topics" value ="right_scan left_scan" /> <!-- LIST OF THE LASER SCAN TOPICS TO SUBSCRIBE -->
+	</node>
+
+  <!--Lidar Fusion PointCloud to LaserScan-->
+  <node name="Lidar_Merged_Cloud_to_Scan" pkg="pointcloud_to_laserscan" type="pointcloud_to_laserscan_node" >
+    <remap from="cloud_in" to="/merged_cloud"/>
+    <remap from="scan" to="/merged_scan"/>
+    <param name="angle_min" value="-3.14159265359"/>
+    <param name="angle_max" value="3.14159265359"/>
+    <param name="range_min" value="0"/>
+    <param name="range_max" value="100"/>
+  </node>
+
+
+  <!--Velodyne PointCloud to LaserScan for SLAM -->
+  <node name="velodyne_laserscan_mapping_node" pkg="pointcloud_to_laserscan" type="pointcloud_to_laserscan_node" >
+    <remap from="cloud_in" to="/velodyne_points"/>
+    <remap from="scan" to="/velodyne_laserscan"/>
+    <param name="angle_min" value="-3.14159265359"/>
+    <param name="angle_max" value="3.14159265359"/>
+    <param name="range_min" value="0"/>
+    <param name="range_max" value="100"/>
+
+    <!--
+    <param name="angle_increment" value="0.00436332312"/> 
+    <param name="min_height" value="0.5"/>
+    <param name="max_height" value="10.0"/>
+    -->
+  </node>
+  
+  <node name="baselink_to_velodyne" pkg="tf2_ros" type="static_transform_publisher" args="0.6 0 2.16 -0.04 0 0 base_link velodyne" output="screen"/>
+
+
+  <!-- Data Reader -->
+  <node name="data_reader" pkg="agv" type="data_reader">
+    <param name="cmd_vel_topic" value="/cmd_vel_out"/>
+    <param name="odom_encoder_topic" value="/odometry/encoder"/>
+    <param name="imu_topic" value="/imu/data"/>
+    <param name="odom_filtered_topic" value="/odometry/filtered"/>
+    <param name="steering_angle_topic" value="/desired_steering_angle"/>
+    <param name="nav_cmd_topic" value="/nav_cmd_vel"/>
+    <param name="data_reader_topic" value="/data_reader_topic"/>
+  </node>
+
+
+  <!-- Path Publisher -->
+  <node name="path_publisher" pkg="agv" type="path_publisher" output="screen">
+    <param name="path_filename_topic" value="/path_filename_topic"/>
+    <param name="path_topic" value="/current_path"/>
+    <param name="paths_directory" value="$(find agv)/paths/"/>
+    <param name="create_reversed_path_flag" value="false"/>
+  </node>
+
+  <!-- Lane Publisher
+  <node name="lane_publisher" pkg="agv" type="lane_publisher" output="screen">
+    <param name="path_filename_topic" value="/path_filename_topic"/> 
+    <param name="lane_info_topic" value="/lane_info_topic"/>
+    <param name="left_boundary_xa_topic" value="/left_boundary_xa_topic"/>
+    <param name="left_boundary_ax_topic" value="/left_boundary_ax_topic"/>
+    <param name="right_boundary_topic" value="/right_boundary_topic"/>
+    <param name="centerline_topic" value="/centerline_topic"/>
+    <param name="waypoints_info_topic" value="/waypoints_info_topic"/>
+    <param name="lanes_directory" value="$(find agv)/lanes/"/>   
+  </node> -->
+
+  <!-- Remove everything after this line for mapping -->
+
+
+  <!-- Map Server 10xto10n goodworkshop 2019jun19westbridge f10 -->
+  <node pkg="map_server" type="map_server" name="map_server" output="screen" args="$(find agv)/maps/micronMap_17dec19.yaml">
+    <param name="frame_id" value="map"/>
+  </node>
+
+
+  <!-- Localization  -->
+  <node pkg="amcl" type="amcl" name="amcl" output="screen">
+    <remap from="scan" to="/velodyne_laserscan" />
+    <param name="odom_frame_id" value="odom" />
+    <param name="base_frame_id" value="base_link" />
+    <param name="global_frame_id" value="map" />
+    <param name="min_particles" value="400"/>
+    <param name="odom_alpha1" value="0.4"/>
+    <param name="odom_alpha2" value="0.4"/>
+    <param name="odom_alpha3" value="0.2"/>
+    <param name="odom_alpha4" value="0.2"/>
+    <param name="laser_max_beams" value="100"/>
+    <param name="recovery_alpha_slow" value="0.0"/>
+    <param name="recovery_alpha_fast" value="0.0"/>
+    
+    <!--
+    <param name="update_min_a" value="0.1745"/>
+    <param name="update_min_d" value="0.2"/>
+    -->
+  </node>
+
+
+  <!-- rviz -->
+  <node type="rviz" name="rviz" pkg="rviz" args="-d $(find agv)/rviz/topdown.rviz"/>
+
+
+  <!-- Baselink Visualizaton on Rviz -->
+  <node name="rviz_baselink_visualization" pkg="agv" type="rviz_baselink_visualization" output="screen">
+    <param name="turning_point_slowdown_speed" value="2.0"/>
+    <param name="obstacle_slowdown_speed" value="1.5"/>
+  </node>
+
+
+  <!-- TX2 Server Socket  -->
+  <!-- <node name="tx2_communication_server" pkg="agv" type="socket_server.py" args="192.168.1.142 8889" output="screen"/> -->
+ 
+
+</launch>

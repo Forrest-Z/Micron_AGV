@@ -1,0 +1,214 @@
+<?xml version="1.0"?>
+<launch>
+  <env name="ROSCONSOLE_CONFIG_FILE" value="$(find agv)/config/rosconsole.config"/>
+
+  <!--Velodyne PointCloud to LaserScan for obstacles -->
+  <node name="velodyne_laserscan_obstacle_node" pkg="pointcloud_to_laserscan" type="pointcloud_to_laserscan_node" >
+    <remap from="cloud_in" to="/velodyne_points"/>
+    <remap from="scan" to="/velodyne_laserscan_obstacle"/>
+    <param name="angle_min" value="-2.0"/>
+    <param name="angle_max" value="2.0"/>
+    <param name="range_min" value="0"/>
+    <param name="range_max" value="90"/>
+    <param name="angle_increment" value="0.00436332312"/> 
+    <param name="min_height" value="-1.5"/>
+    <param name="max_height" value="0.2"/>
+  </node>
+
+  <!-- Obstacle Detector -->
+  <node name="nodelet_manager" pkg="nodelet" type="nodelet" args="manager" output="screen">
+    <param name="num_worker_threads" value="20"/>
+  </node>
+
+  <node name="obstacle_extractor2" pkg="nodelet" type="nodelet" args="load obstacle_detector/ObstacleExtractor nodelet_manager">
+    <param name="active"               value="true"/>
+    <param name="use_scan"             value="true"/>
+    <param name="use_pcl"              value="false"/>
+    <remap from="scan" to="/velodyne_laserscan_obstacle"/>
+
+    <param name="use_split_and_merge"    value="true"/>
+    <param name="circles_from_visibles"  value="false"/>
+    <param name="discard_converted_segments" value="false"/>
+    <param name="transform_coordinates"  value="true"/>
+
+    <param name="min_group_points"     value="4"/>
+
+    <param name="max_group_distance"   value="0.15"/>
+    <param name="distance_proportion"  value="0.00174533"/>
+    <param name="max_split_distance"   value="0.05"/>
+    <param name="max_merge_separation" value="0.05"/>
+    <param name="max_merge_spread"     value="0.05"/>
+    <param name="max_circle_radius"    value="1.75"/>
+    <param name="radius_enlargement"   value="0.05"/>
+
+    <param name="frame_id"             value="map"/>
+  </node>
+
+
+  <node name="obstacle_extractor" pkg="nodelet" type="nodelet" args="load obstacle_detector/ObstacleExtractor nodelet_manager">
+    <param name="active"               value="true"/>
+    <param name="use_scan"             value="true"/>
+    <param name="use_pcl"              value="false"/>
+    <remap from="scan" to="/front_scan"/>
+
+    <param name="use_split_and_merge"    value="true"/>
+    <param name="circles_from_visibles"  value="false"/>
+    <param name="discard_converted_segments" value="false"/>
+    <param name="transform_coordinates"  value="true"/>
+
+    <param name="min_group_points"     value="4"/>
+
+    <param name="max_group_distance"   value="0.15"/>
+    <param name="distance_proportion"  value="0.0174533"/>
+    <param name="max_split_distance"   value="0.05"/>
+    <param name="max_merge_separation" value="0.05"/>
+    <param name="max_merge_spread"     value="0.05"/>
+    <param name="max_circle_radius"    value="1.75"/>
+    <param name="radius_enlargement"   value="0.05"/>
+
+    <param name="frame_id"             value="map"/>
+
+    <remap from="/raw_obstacles" to="/raw_obstacles2"/>
+  </node>
+
+
+  <node name="obstacle_extractor3" pkg="nodelet" type="nodelet" args="load obstacle_detector/ObstacleExtractor nodelet_manager">
+    <param name="active"               value="true"/>
+    <param name="use_scan"             value="true"/>
+    <param name="use_pcl"              value="false"/>
+    <remap from="scan" to="/merged_scan"/>
+
+    <param name="use_split_and_merge"    value="true"/>
+    <param name="circles_from_visibles"  value="false"/>
+    <param name="discard_converted_segments" value="false"/>
+    <param name="transform_coordinates"  value="true"/>
+
+    <param name="min_group_points"     value="4"/>
+
+    <param name="max_group_distance"   value="0.15"/>
+    <param name="distance_proportion"  value="0.005759587"/>
+    <param name="max_split_distance"   value="0.05"/>
+    <param name="max_merge_separation" value="0.05"/>
+    <param name="max_merge_spread"     value="0.05"/>
+    <param name="max_circle_radius"    value="1.75"/>
+    <param name="radius_enlargement"   value="0.05"/>
+
+    <param name="frame_id"             value="map"/>
+
+    <remap from="/raw_obstacles" to="/raw_obstacles3"/>
+  </node>
+
+
+
+  <node name="obstacle_tracker" pkg="nodelet" type="nodelet" args="load obstacle_detector/ObstacleTracker nodelet_manager">
+    <param name="active"                  value="true"/>
+
+    <param name="loop_rate"               value="20.0"/>
+    <param name="tracking_duration"       value="1.0"/>
+    <param name="min_correspondence_cost" value="0.6"/>
+    <param name="std_correspondence_dev"  value="0.15"/>
+    <param name="process_variance"        value="0.1"/>  
+    <param name="process_rate_variance"   value="0.1"/>  
+    <param name="measurement_variance"    value="1.0"/>  
+
+    <param name="frame_id"                value="map"/>
+
+    <remap from="tracked_obstacles" to="obstacles"/>
+  </node>
+
+
+  <node name="obstacle_tracker2" pkg="nodelet" type="nodelet" args="load obstacle_detector/ObstacleTracker nodelet_manager">
+    <param name="active"                  value="true"/>
+
+    <param name="loop_rate"               value="20.0"/>
+    <param name="tracking_duration"       value="1.0"/>
+    <param name="min_correspondence_cost" value="0.6"/>
+    <param name="std_correspondence_dev"  value="0.15"/>
+    <param name="process_variance"        value="0.1"/>  
+    <param name="process_rate_variance"   value="0.1"/>  
+    <param name="measurement_variance"    value="1.0"/>  
+
+    <param name="frame_id"                value="map"/>
+
+    <remap from="tracked_obstacles" to="obstacles2"/>
+    <remap from="raw_obstacles" to="raw_obstacles2"/>
+  </node>
+
+
+  <node name="obstacle_tracker3" pkg="nodelet" type="nodelet" args="load obstacle_detector/ObstacleTracker nodelet_manager">
+    <param name="active"                  value="true"/>
+
+    <param name="loop_rate"               value="20.0"/>
+    <param name="tracking_duration"       value="1.0"/>
+    <param name="min_correspondence_cost" value="0.6"/>
+    <param name="std_correspondence_dev"  value="0.15"/>
+    <param name="process_variance"        value="0.1"/>  
+    <param name="process_rate_variance"   value="0.1"/>  
+    <param name="measurement_variance"    value="1.0"/>  
+
+    <param name="frame_id"                value="map"/>
+
+    <remap from="tracked_obstacles" to="obstacles3"/>
+    <remap from="raw_obstacles" to="raw_obstacles3"/>
+  </node>
+
+  <!-- Obstacle Detector END -->
+
+
+  <!-- Stanley Steering 
+  <node name="stanley_steering_controller" pkg="agv" type="stanley_steering_controller" output="screen">    
+    <param name="track_error_gain" value="0.2"/>
+    <param name="odom_topic" value="/odometry/filtered"/>
+    <param name="path_topic" value="/current_path"/>
+    <param name="steering_angle_pub_topic" value="/desired_steering_angle"/>
+    <param name="stanley_max_steering_radius" value="0.336"/>
+  </node>
+  -->
+
+  <!-- Nav Cmd Constructor 
+  <node name="nav_cmd_constructor" pkg="agv" type="nav_cmd_constructor" output="screen">    
+    <param name="desired_steering_angle_topic" value="/desired_steering_angle"/>
+    <param name="closest_obstacle_distance_topic" value="/closest_obstacle_distance"/>
+    <param name="odom_topic" value="/odometry/filtered"/>
+    <param name="nav_cmd_topic" value="/nav_cmd_vel"/>
+    <param name="path_filename_topic" value="/path_filename_topic"/>
+
+    <param name="normal_cruise_speed" value="2.5"/>
+    <param name="turning_point_slowdown_speed" value="2.0"/>
+    <param name="obstacle_slowdown_speed" value="1.5"/>
+    <param name="medium_steering_angle_slowdown_speed" value="2.0"/>
+    <param name="large_steering_angle_slowdown_speed" value="1.5"/>
+
+    <param name="obstacle_stop_radius" value="2.0"/>
+    <param name="obstacle_slowdown_radius" value="10.0"/>
+    <param name="near_turning_point_radius" value="9.0"/>
+    <param name="end_point_stop_radius" value="7.0"/>
+    <param name="end_point_slowdown_radius" value="12.0"/>
+
+    <param name="landmarks_directory" value="$(find agv)/landmarks/"/>
+  </node>
+
+  -->
+  
+
+
+  <!-- Collision Detector 
+  <node name="collision_detector" pkg="agv" type="collision_detector" output="screen">
+    <param name="velodyne_obstacles_topic" value="/obstacles"/>
+    <param name="sick_obstacles_topic" value="/obstacles2"/>
+    <param name="odom_topic" value="/odometry/filtered"/>
+    <param name="steering_angle_topic" value="/desired_steering_angle"/>
+    <param name="nearest_obstacle_dist_topic" value="/closest_obstacle_distance"/>
+
+    <param name="lookahead_time" value="7"/>
+    <param name="lookahead_time_increments" value="0.5"/>
+    <param name="lookahead_time_constant" value="15.0"/>
+    <param name="obstacle_stop_radius" value="2.0"/>
+    <param name="obstacle_slowdown_radius" value="10.0"/>
+    <param name="collision_detection_radius" value="1.1"/>
+  </node>
+
+  -->
+  
+
+</launch>
