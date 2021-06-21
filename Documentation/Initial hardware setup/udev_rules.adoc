@@ -1,0 +1,56 @@
+= udev (/dev)
+
+Last updated 5 July 2019
+
+== Binding devices to static name through udev rules
+Certain pieces of hardware get mapped to the similar device ports in a relatively unpredictable manner. In particular, the Arduino microcontrollers and Microstrain IMU map to /dev/ttyACMx ports. Therefore, there is a need to map them to static port names to greatly improve the robustness of the system. 
+
+== General Procedure
+
+. Check the attributes of a particular device using the command: +
+`udevadm info --name=/dev/ttyACMx --attribute-walk`
+. Look for unique attributes that can be used to differentiate the device from others +
+. Update the udev rules with the attributes: +
+`sudo vim /etc/udev/rules.d/99-usb-serial.rules`
+
+. Add your user to dialout group if you have not done so: +
+`sudo usermod -a -G dialout <username>` +
+Change <username> appropriately, e.g. `agv`
+
+== Examples
+SUBSYSTEM=="tty", ATTRS{serial}=="95530343834351C001D2", SYMLINK+="Arduino2" +
+SUBSYSTEM=="tty", ATTRS{serial}=="558393134383513121C1", SYMLINK+="Arduino1" +
+SUBSYSTEM=="tty", ATTRS{serial}=="95530343834351014022", SYMLINK+="Arduino3" +
+SUBSYSTEM=="tty", ATTRS{serial}=="7573630323635151C050", SYMLINK+="Arduino4" +
+SUBSYSTEM=="tty", ATTRS{manufacturer}=="Lord Microstrain", SYMLINK+="microstrain" +
+SUBSYSTEM=="tty", ATTRS{serial}=="00000000001A", SYMLINK+="STM32_1" +
+SUBSYSTEM=="tty", ATTRS{serial}=="FT3FSIIX" , SYMLINK+="dynamixelU2D2_1" +
+SUBSYSTEM=="tty", ATTRS{serial}=="FT3FQ2CN" , SYMLINK+="dynamixelU2D2_2"  +
+
+== udev rules for unit 1
+SUBSYSTEM=="tty", ATTRS{serial}=="558393134383513121C1", SYMLINK+="Arduino1" +
+SUBSYSTEM=="tty", ATTRS{serial}=="95530343834351C001D2", SYMLINK+="Arduino2" +
+SUBSYSTEM=="tty", ATTRS{serial}=="75736303236351D09182", SYMLINK+="Arduino3" +
+SUBSYSTEM=="tty", ATTRS{manufacturer}=="Lord Microstrain", SYMLINK+="microstrain" +
+SUBSYSTEM=="tty", ATTRS{serial}=="FT3FSIIX" , SYMLINK+="dynamixelU2D2_1" +
+SUBSYSTEM=="tty", ATTRS{serial}=="FT3FQ2CN" , SYMLINK+="dynamixelU2D2_2" +
+
+== udev rules for unit 2
+SUBSYSTEM=="tty", ATTRS{serial}=="75736303236351D00251", SYMLINK+="Arduino1" +
+SUBSYSTEM=="tty", ATTRS{serial}=="55739323637351604262", SYMLINK+="Arduino2" +
+SUBSYSTEM=="tty", ATTRS{serial}=="75736303236351612111", SYMLINK+="Arduino3" +
+SUBSYSTEM=="tty", ATTRS{manufacturer}=="Lord Microstrain", SYMLINK+="microstrain" +
+SUBSYSTEM=="tty", ATTRS{serial}=="FT3M9RB6" , SYMLINK+="dynamixelU2D2_1" +
+SUBSYSTEM=="tty", ATTRS{serial}=="FT3M9PJV" , SYMLINK+="dynamixelU2D2_2" +
+
+== udev rules for unit 3
+SUBSYSTEM=="tty", ATTRS{serial}=="75736303236351E040C1", SYMLINK+="Arduino1" +
+SUBSYSTEM=="tty", ATTRS{serial}=="75735353338351907131", SYMLINK+="Arduino2" +
+SUBSYSTEM=="tty", ATTRS{serial}=="75736303236351011152", SYMLINK+="Arduino3" +
+SUBSYSTEM=="tty", ATTRS{manufacturer}=="Lord Microstrain", SYMLINK+="microstrain" +
+SUBSYSTEM=="tty", ATTRS{serial}=="FT3FQ67I" , SYMLINK+="dynamixelU2D2_1" +
+SUBSYSTEM=="tty", ATTRS{serial}=="FT3FQ67C" , SYMLINK+="dynamixelU2D2_2" +
+
+== References
+Refer to this to change the binding of ttyACM devices (or other such devices) https://unix.stackexchange.com/questions/66901/how-to-bind-usb-device-under-a-static-name
+

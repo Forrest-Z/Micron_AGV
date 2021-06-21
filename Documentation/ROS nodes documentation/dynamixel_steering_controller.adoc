@@ -1,0 +1,36 @@
+= Dynamixel Steering Controller
+
+Last updated 10 May 2019
+
+== Motor Details
+
+|===
+| Model | Dynamixel H54-200-S500-R
+| Protocol | Dynamixel Protocol 2.0
+| Baudrate | 57600 (default)
+| ID | 1 (default)
+| Reference Manual | http://emanual.robotis.com/docs/en/dxl/pro/h54-200-s500-r/
+|===
+
+== To Program the Dynamixel
+To learn how to use the Dynamixel Protocol, I recommend downloading the SDK from their website, and reference the examples provided (available in various languages such as c++, java, and python). +
+In particular, study the example *read_write.cpp*.
+
+== Calculations
+The only calculation of note is the STEERING_ANGLE_TO_GOAL_POSITION_CONST. +
+
+The formulae is as follows: +
+`STEERING_ANGLE_TO_GOAL_POSITION_CONST = 180 / pi * 20 / 180 * 250,961.5 = 1597670.53`
+
+Explanation: 
+
+The input to the callback function is the desired steering angle for the vehicle, in radians. 
+
+.To convert that:
+. Convert the angle from radians to degrees
+. Multiply the angle by 20
+.. 20 degree turn of the dynamixel motor is roughly equivalent to 1 degree turn of the steering on the vehicle:
+. Convert this angle from step 2 to the desired position value according to the protocol:
+( / 180 * 250961.5)
+.. See the section in the manual on goal position for more details: +
+http://emanual.robotis.com/docs/en/dxl/pro/h54-200-s500-r/#goal-position596

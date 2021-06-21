@@ -1,0 +1,34 @@
+= Arduino Mega Microcontroller
+
+Last updated 10 May 2019
+
+== Arduino-ROS Communication
+While it is possible to communicate with the Arduino by writing a simple serial communication code, I have elected to use the `rosserial-arduino` library, as it allows the use of the ROS framework for programming the Arduino more intuitively. +
+
+I recommend following the tutorial linked in the References. In particular, the first 3 tutorials are the most important.
+
+== Quick Procedure to Run Code on Arduino via ROS
+. Write Code
+. Compile
+. Upload
+. roscore
+. rosrun rosserial_python serial_node.py /dev/ttyACM0 +
+ It should say: +
+[INFO] [1548781491.863875]: ROS Serial Python Node +
+[INFO] [1548781491.872685]: Connecting to /dev/ttyACM0 at 57600 baud +
+
+== Troubleshooting
+- If the Arduino and IMU are interfering with each other by connecting to a different /dev/ttyACMx port each time, follow udev_rules.adoc to set a static device name.
+
+- sudo usermod -a -G dialout <username>
+
+
+
+== Communication with DAC
+
+To communicate with the MCP4725 DAC, download the MCP4725 library which is widely avaible on the Internet. Extract the library and add it into the Arduino's library folder.
+
+Note that the address of the DAC model is  `0x60`.
+
+== References
+http://wiki.ros.org/rosserial_arduino/Tutorials

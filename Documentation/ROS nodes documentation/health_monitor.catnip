@@ -1,0 +1,40 @@
+Health monitor (HM) is for monitoring health of the buggy.
+
+It subscribes to topics of interest to determine their health.
+## Sensors:
+/imu/data : data from imu node. The IMU node is known to stop publishing data once communication error occurs, say due to loose wire. This has caused safety issue, because the loss of IMU data causes the vehicle to screw up its odometry and veer off the road.
+/front_scan /left_scan /right_scan: raw data of the 3x 2D Lidars
+/velodyne_points: raw data of the velodyne 3D lidar. This does not restart when the cable is plugged back in; you need to restart AGV.
+
+1. For each topic, we count the number of messages that they publish in a certain time frame.
+2. For each topic, we are given `expected_hz` in the launch file. This is the expected number of messages in 1 second.
+3. The `health_points` variable is = `actual_msg_count/expected_msg_count`. This is the ratio of messages that we count, compared to number of messages we expect.
+4. A topic has "bad health" if the `health_points` is lower than the `health_threshold` (launch file)d
+
+## Brake + Steering: 
+The nodes that control the steering and brake motors output their health data on the topic /steering_health and /brake_health. The type is `ActuatorHealth.msg`. 
+
+ActuatorHealth.msg
+bool health_ok      : is the health of the motor ok
+string error        : what is the error (communication or internal dynamixel error?)
+
+Similarly, HM also calculate health_points for the brake and steering topics. There are thus 2 ways that the brake topic can be 'bad health': by error and by low topic publish frequency 
+
+
+
+
+## Publishers:
+The HM sends out health information to joystick teleop. In joystick teleop, we stop Autonomous mode operation if we are not healthy.
+The HM publish to /health_monitor topic, using health_monitor message type. 
+
+Messsage type:
+bool health_ok :                  is health ok?
+
+For the following 3 arrays, each index-number refers to a specific topic. (Eg: topic_list[0] is imu_topic, and its health_points is at health_points_list[0])
+
+string[] topic_list :             list of topics, in order.
+float32[] health_points_list :    list of health_points, in order.
+string[] error_list :             list of error messages, in order. (only brake and steering have error messages)
+
+int32[] index_fail :              list of index-number, that correspond to the topics that failed health monitor's check. If IMU fail, '0' will appear in this list.
+string error_string :             A string that is printed by the UI directly on the screen. (No UI yet.)

@@ -1,0 +1,18 @@
+= Velodyne VLP16 3D Lidar Setup
+
+Last updated 10 May 2019
+
+== Setup
+The setup for this sensor is rather straightforward.  
+Simply follow the instructions provided in this link: http://wiki.ros.org/velodyne/Tutorials/Getting%20Started%20with%20the%20Velodyne%20VLP16
+
+1. install the package:$ sudo apt-get install ros-kinetic-velodyne  
+2. in workspace: $ rosdep install --from-paths src --ignore-src --rosdistro YOURDISTRO -y  
+3. catkin_make  
+4. launch: $ roslaunch velodyne_pointcloud VLP16_points.launch  
+5. (optional) rosnode list , rostopic echo /velodyne_points to check  
+6. rosrun rviz rviz -f velodyne , note the -f to make velodyne the fixed frame
+
+== Troubleshooting
+1. Similar to the 2D Lidars, the IPv4 address needs to be set manually. The default IP Address of the Velodyne Lidar is 192.168.1.201, so the address to set for the computer's interface is 192.168.1.X where X is a number between 0 and 255, that is not 201.  
+2. Since we are using 2D and 3D Lidars together, it may be easier to configure the IP address of 2D Lidars. In particular, need to make the subnet of the Lidars the same (i.e. 192.168.1.X).  

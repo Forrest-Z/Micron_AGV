@@ -1,0 +1,49 @@
+= Joystick Teleop
+
+Last updated 27 Nov 2019
+
+== Description
+The joystick_teleop serves 3 functions: +
+1. Gets joystick input by subscribing to /joy topic (from Joy node) +
+2. Acts as arbitrator between manual and autonomous commands +
+3. Obtains health from health_monitor node, and forces the vehicle from Autonomous mode to Softbrake mode if vehicle is in bad health. +
+You should refer to architecture diagram on asana. +
+
+== Enums
+This code also has an enum class called NavMode, which is contains the state of the system. Currently, this enum consists of 4 values, each corressponding to one of the mode of the system: +
+1. Hardbrake +
+2. Softbrake +
+3. Manual +
+4. Autonomous
+
+== Callbacks
+This node has 3 callbacks:
+
+. joystickCallback
+. autonomousCmdVelCallback
+. healthMonitorCallback
+
+== Command Message type
+The command message represents commands to the vehicle's actuators (throttle, brake, steering)
+It is of type geometry_msgs::Twist.
+
+Mapping:
+linear.x => desired_velocity in m/s
+linear.z => braking intensity, on a 0 - 1 range. 
+angular.x =>  "em_brake_off"; EM brake switch closed/open (1/0)
+angular.z => steering angle in radians
+
+=== joystickCallback
+This callback is used to decipher commands from the joystick, change the mode of the system.
+
+Firstly, it maps the raw msg of Joy node with the button corresponding to the joystick. Note that the mapping of the button to signal is dependent on the joystick used. This is functionally optional, but allows for cleaner code in later parts of the callback.
+
+Secondly, it checks for any change in modes. For example, if ButtonX was pressed, the system changes to manual mode. 
+
+Lastly, based on mode after any changes in the second part, it publishes the appropriate cmd_vel_out message, unless it is in autonomous mode, then nothing is published in this callback. For example, in manual mode, the axes controls are deciphered and the appropriate steering and velocity values are published. 
+
+=== autonomousCmdVelCallback
+This callback is used to forward autonomous navigation commands from the autonomous part of the system, if in autonomous mode as set by joyCallback.
+
+=== healthMonitorCallback
+This callback updates the is_healthy_g boolean using the health message from the HealthMonitor node. The is_healthy_g bool is checked by joystickCallback and autonomousCmdVelCallback, so that they can get out of Autonomous mode in the case of bad health.

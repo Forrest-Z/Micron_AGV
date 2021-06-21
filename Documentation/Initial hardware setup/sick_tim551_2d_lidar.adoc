@@ -1,0 +1,80 @@
+= SICK TIM551 2D Lidar
+
+Last updated 17 May 2019 +
+
+NOTE: Works for `SICK TIM571` and `LMS151` Lidars as well 
+
+== First-time Configuration
+. Go to Windows, open the SOPAS Engineering Tool (ET)  
+. Connect LiDar to PC via Ethernet, search for device on ET  
+. Click on the device that shows up with port 2112 (NOT 2111)  
+. Change the IP Address if necessary. Automatic IP address will work but it is not recommended. Remember / write it down. Port
+number should still be 2112  
+. Open the device window -> on the left side bar open parameters -> Data processing --> Find the option to tick RSSI  
+. Save  
+. (Optional) Unplug and plug in the device again, and see if it appears on the ET at the correct IP
+address, check if RSSI setting is ticked  
+. (Optional) Ping the device on cmd. Run cmd, type “ping <ip address of device>” 
+. Go to Ubuntu  
+. Install the package from Github (sick_tim) using “git clone https://github.com/uos/sick_tim.git”  
+. catkin_make, source ./devel/setup.bash if needed  
+. Open the launch file `sick_tim551_2050001.launch`  
+. Make sure that the necessary code at the bottom is uncommented, necessary for Ethernet connection
+to Lidar  
+. The IP address should be that of the the LiDar (step 4)  
+. Launch with command “roslaunch sick_tim sick_tim551_2050001.launch”. It should say `connecting to <ip address of device>``.  
+. (Optional) rostopic echo /scan 
+. “rviz”, change the map settings, add LaserScan, topic of LaserScan change to /scan, and it should work  
+
+== IP Addressing Convention
+. For the sick551 lidars, the address convention is 192.168.1.x, where x is the number we labelled the lidar. For example, a lidar labelled `sick01` has the ip address 192.168.1.1
+. For sick571 lidars, the address convention is almost, if not identical, to the sick551
+. The LMS151 lidar has been assigned ip address 192.168.1.151
+
+== Connection Settings
+. You will probably need to configure the network settings on your PC to connect to the Lidars. See https://github.com/uos/sick_tim/issues/34 for more information.  
+.. In particular, note that the IP address to enter is not the same as that of the Lidar, but rather they have to be in the same subnet.  
+.. For example, if the IP address of my Lidar is 169.254.111.3, and the subnet is 24 (255.255.255.0), the manual IP address I enter into my PC's configuration is 169.254.111.x, where 'x' is a value between 0 and 255, but it must not be the same as my lidar (3). For example, I can enter 169.254.111.123.  
+. It is recommended to let the Lidars have similar IP addresses rather than automatic. For example, we can let Lidar IP addresses be 169.254.111.1, 169.254.111.2, 169.254.111.3.  
+. It is also recommended for the subnet to be the same as the 3D Lidar to use all the Lidars together.
+
+== Communication Between Multiple Lidars
+- To launch multiple Lidars on ROS, it is better to write a launch file. +
+
+- Note that if you do not change the topic it is published to, the Lidars will publish to the default /scan. If you attempt to visualize this on Rviz, the data points will seem to be blinking.  +
+
+- To solve this, change the topic that is published to in the launch file, i.e. include this line:  + 
+`<remap from="scan" to="/lidar1_scan"/>`
+
+== 2D Lidar Sensor Fusion
+Sensor fusion is done using the ira_laser_tools library http://wiki.ros.org/ira_laser_tools  +
+This produces a PointCloud, which you can visualize on rviz.  
+
+=== Possible Complications
+* When you start the fusion node, it will say how many scans it is subscribed to. Check whether it is subscribed to the correct number of scans.  
+
+* If wrong, eg. only detect 2 scans with 3 Lidars, most likely is because the last Lidar took too long to setup. Therefore, we need to add a delay between Lidar setup and fusion node checking for scans.    
+
+* The launch file does not permit any timing changes. The (probably) correct way to deal with this is to rearrange the launch file such that the Lidar launch is closer to the top of the file, and fusion closer to the bottom. However, this compromises the neatness of the launch file.  
+
+* Another way to do it is to add in a sleep to the source code constructor in `laserscan_multi_merger.cpp`: + 
+`ros::Duration(5).sleep();` +
+which gives 5 second of time for the Lidars to set up before the fusion node checks for the scans. 
+
+* Alternatively, you can write your own code for fusing the laser scans instead of using the library. While I did not implement this, a general idea for doing this is to:
+. Convert Laserscan to PointCloud
+. Concatenate the PointClouds
+. Output this fused PointCloud
+. If need to convert back to a laser scan, use the `pointcloud_to_laserscan` package in ROS
+
+== Troubleshooting
+. Reinstall SOPAS ET if cannot detect the driver, install the driver from the device itself instead of
+sick.com  
+. The LMS151 comes with a default password lock, unlike the sick551 and sick571 which come without any password locks. The default password lock is in the manual, but for quick reference:
+
+|===
+| *User level* | *Password*
+| Maintenance personnel | main
+| Authorised client | client
+|===
+ 

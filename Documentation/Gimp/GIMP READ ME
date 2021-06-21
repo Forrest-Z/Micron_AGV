@@ -1,0 +1,25 @@
+*note, latest gimp 2.8.20 has a transform cage/ rotate bug, use command below to install its snapped version*
+
+sudo apt install snapd
+sudo snap install gimp
+snap run gimp
+
+To prevent resolution lost:
+1. Rotate tool: Interpolation - none
+2. Free select tool: Antiliasing - unselect
+
+To trim:
+1. Free select tool
+2. Move tool: to select wanted area
+3. Add alpha channel (under layers, right side of app)
+4. Select > Invert
+5. Cltrl x to delete unwanted parts
+
+To change canvas size:
+Image > Canvas size> 10000 by 10000 for 10x to 10n
+
+# Gimp stitching
+
+. Adjustment for yaw
+. Clean up blind spot/ define features
+. Combine map

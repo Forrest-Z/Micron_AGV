@@ -1,0 +1,43 @@
+= Stanley Steering Controller
+
+Last updated 19 July 2019
+
+== Description
+This node serves as the path tracker in our system. This algorithm is taken from page 24 of *Stanley: The Robot that Won the DARPA Grand Challenge*. While there are problems related to Kinematics and Mathematics to be solved to implement / improve the system, this documentation will only focus on the important points for a programmer.
+
+== Callbacks
+. mainTimerCallback
+. odomCallback
+. pathCallback
+
+=== mainTimerCallback
+This callback runs at 10Hz, and serves as the main driver for running the code. Note that unless a path has been set, i.e. the pathCallback needs to be run at least once, the rest of the code will not run. This is to prevent runtime error caused by nearestKSearch() when there is no path set yet.
+
+=== odomCallback
+This callback is used to update the position, speed, and heading of the robot, which are necessary for calculation. The values from the callback msg are in the odom frame, it is therefore necessary to convert this to the map from using the tf buffer.
+
+The alternative is to use amcl_pose directly, but that only runs at 2-3Hz, which may not give as accurate odometry when our timer for callback runs at a higher frequency.
+
+=== pathCallback
+This callback activates when a Path is received. It creates a new PointCloud, iterates through each Point in the Path and adds these Points to the PointCloud. Finally, it sets the kd tree to point to this PointCloud. This is necessary for finding the nearest path segment in the algorithm.
+
+WARNING: Note that the width of the cloud should match the size of the Path exactly. Any extra width is initialized to (0,0,0) which may result in problems. 
+path_cloud->width = path_msg->poses.size();
+
+
+== Finding the Nearest Path Segment
+One of the key steps for this algorithm to work is to calculate the closest path segment.
+
+There are a number of ways to implement this. The simplest way is to brute force every Point in the Path and find the closest euclidean distance to the current coordinates of the vehicle. However, as our paths can have more than 1000 Points, this is computationally intensive. One way to avoid this is to break up the path into smaller chunks of 100 Points each, and when the robot is near the end of 1 Path, call for the next Path. However, this is likely difficult and prone to programme mistakes as well as runtime mistakes.
+
+Therefore, we use a tree in order to find this O(logn) time. The tree used is the K-d tree in the PCL library, which has the nearestKSearch() function. This is implemented in the findClosestPathSegment() method. The nearestKSearch() of the kd tree function gives the index of the K closest elements and the (squared) euclidean distance. 
+
+In addition to finding the closest point, we also need to know the shape of the Path. This is clearly difficult, so we approximate each 2 Points as straight lines and do the calculation with this assumption. Therefore, the Path needs to have many points for this approximation to hold true. The Path also needs to be ordered for this reason.
+
+TIP: Other ways to solve this include m-tree, and R* tree from the Boost library, Voronoi Diagrams (Fortune's Algorithm), Locality Sensitive Hashing (LSH).
+
+TIP: A binary tree does not work in this scenario, as it does not allow for dynamic updating of keys, which is necessary here as the robot is moving with respect to the path and the distance is constantly changing.
+
+TIP: For brute force comparisons, don't compare the euclidean distance, instead compare the squared of the euclidean distance, which saves on the costly sqrt function.
+
+

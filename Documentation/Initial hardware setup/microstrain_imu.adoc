@@ -1,0 +1,27 @@
+:icons: font
+= Microstrain IMU
+
+Last updated 10 May 2019
+
+== ROS Package
+http://wiki.ros.org/microstrain_3dm_gx5_45 +
+
+Run the launch file using this command: +
+`roslaunch microstrain_3dm_gx5_45 microstrain_25.launch` + 
+
+NOTE: Note the need to change the port to /dev/microstrain, refer to udev_rules.adoc for instructions to do this
+
+== Windows Software for Configuration:
+https://s3.amazonaws.com/download.microstrain.com/MIP/MIP_Monitor_3.5.0.71_Installer.zip
+
+or 
+
+https://www.microstrain.com/software
+Under MIP Monitor
+
+== Troubleshooting
+- If problem about the port not being accessible, give it permission by adding yourself to the dialout group, or temporarily give permission using `sudo chmod 666 /dev/microstrain` 
+
+== Things to Do in Windows MIP Monitor
+. Apply roll pitch yaw offset
+. Reset yaw to point to north pole (default factory setting is to point this way)

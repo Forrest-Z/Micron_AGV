@@ -1,0 +1,123 @@
+Encoder.h for Arduino
+https://www.pjrc.com/teensy/td_libs_Encoder.html
+Encoder by Paul Stoffregen
+
+## TO CHANGE SCREEN RESOLUTION
+
+`sudo xrandr --newmode "1920x1080_60.00"  173.00  1920 2048 2248 2576  1080 1083 1088 1120 -hsync +vsync && sudo xrandr --addmode DP-3 "1920x1080_60.00"`
+
+---
+
+## To install the pkgs
+`rosdep install --from-paths src --ignore-src --rosdistro=${ROS_DISTRO} -y`
+
+---
+
+## TO CARTO 
+
+### 3 FILE TYPES OF CARTO
+
+`.lua` = setting file, to set the paramters of carto
+
+`.launch` = to launch, open rviz, and file directory to find your .lua and .urdf
+
+`.urdf` = your tf info file, we don't rosbag the tf info for carto, so that we can edit the tf when mapping
+
+
+record the bag with velodyne and imu, but without tf
+
+```
+
+cd cartographer_ws/ 
+
+source install_isolated/setup.bash
+
+cartographer_rosbag_validate -bag_filename your_bag.bag
+
+roslaunch cartographer_ros agv_demo.launch bag_filename:=${HOME}/Downloads/2019-05-02-12-57-14.bag
+
+```
+
+### TO MAP FROM ROSBAG WITH FASTFORWARD
+
+```
+
+roslaunch cartographer_ros agv_offline.launch bag_filenames:=${HOME}/Downloads/2019-05-03-14-48-40hilltoworkshop.bag
+
+roslaunch cartographer_ros demo_backpack_3d.launch bag_filename:=${HOME}/Downloads/b3-2016-04-05-14-14-00.bag
+
+rosrun velodyne_driver velodyne_node _npackets:=1 _model:=VLP16 _rpm:=600
+
+roslaunch cartographer_ros agv_demo_localization.launch
+
+load_state_filename:=${HOME}/Downloads/nloadingbay2ndmay2019.pbstream bag_filename:=${HOME}/Downloads/2019-05-02-14-25-14.bag
+
+roslaunch cartographer_ros agv_localization.launch load_state_filename:=${HOME}/Downloads/nloadingbay2ndmay2019.pbstream
+
+rosservice call /finish_trajectory 1
+
+rosrun cartographer_ros cartographer_start_trajectory  -configuration_directory /home/agv/cartographer_catkin_ws/install_isolated/share/cartographer_ros/configuration_files -configuration_basename agv.lua -initial_pose '{to_trajectory_id = 0, relative_pose = { translation = { 0., 0., 0. }, rotation = { 0.0, 0.0, 0.0 } } }'
+
+
+rosservice call /finish_trajectory 0
+
+rosservice call /write_state "{filename: '${HOME}/Downloads/tftest.pbstream', include_unfinished_submaps: true}"
+
+roslaunch cartographer_ros assets_writer_agv.launch pose_graph_filename:=${HOME}/Downloads/tftest.pbstream bag_filenames:=${HOME}/Downloads/tftest.bag
+
+```
+
+## OTHERS
+
+```
+
+rosrun tf viewframes
+evince frames.pdf
+
+cd ~/bagfiles
+rosbag record -a
+rostopic echo -b file.bag -p /data_reader_topic > data.csv
+rosbag record rosout raw_encoder_count_left raw_encoder_count_right imu/data
+**Note the need to change "file.bag" and "/topic" and "data.txt."
+
+//ROSBAG
+rosbag filter my.bag mynomap.bag "topic != '/map'"
+rosbag play -s 10 mynomap.bag
+rosbag filter good2019-05-14-09-05-38.bag trimmedgood.bag "topic == '/odometry/filtered' or topic == '/front_laser' or topic == '/tf'"
+
+//PCL
+rosrun pcl_ros pointcloud_to_pcd input:=/laser_cloud_surround
+rosrun pcl_ros pcd_to_pointcloud <file.pcd>
+rosrun pcl_ros convert_pointcloud_to_image input:=/laser_cloud_surround output:=/my_image
+rosrun image_view image_view image:=/my_image
+
+//TO LAUNCH GMAPPING
+rosrun gmapping slam_gmapping scan:=front_laser _linearUpdate:=0.1 _angularUpdate:=0.1 _particles:=200 _map_update_interval:=1.0
+
+rosrun gmapping slam_gmapping scan:=merged_scan _linearUpdate:=0.01 _angularUpdate:=0.01 _particles:=300 _map_update_interval:=1.0
+
+//TO SAVE THE MAP
+(while gmapping is still running)
+rosrun map_server map_saver -f <mapname>
+
+//AMCL
+rosservice call /global_localization "{}"
+
+//TO GMAP WITH ROSBAG
+roscore
+rosrun gmapping slam_gmapping scan:=velodyne_laserscan _linearUpdate:=0.1 _angularUpdate:=0.1 _particles:=30 _map_update_interval:=1.0
+rosbag play mybag.bag
+rviz
+
+//TO AMCL WITH ROSBAG
+record bag without amcl
+
+roscore
+rosrun map_server
+rosrun amcl
+rosbag play
+rviz
+
+```
+
+---

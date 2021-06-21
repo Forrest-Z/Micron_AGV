@@ -1,0 +1,21 @@
+:icons: font
+= Joystick
+
+Last updated 10 May 2019
+
+== Installation
+Follow this link for complete instructions on how to interface the joystick with ROS:
+http://wiki.ros.org/joy/Tutorials/ConfiguringALinuxJoystick
+
+WARNING: No need to download any package except those defined in the link above. Else, it may cause conflicts that can be very difficult to resolve (had to reinstall Ubuntu).
+
+== Notes
+- The Logitech F710 and Xbox One Controller have some differences in the output. Be careful of which one you are using.
+- The Xbox One seems to have difficulty connecting wirelessly to Ubuntu 16.04. We are using it in `wired` mode for our system.
+- The Logitech F710 has no issues in connecting wirelessly to Ubuntu. However, we are wary of using it due to effective range / line-of-sight blocking between the receiver and the joystick.
+
+== Useful Commands
+roscore +
+rosparam set joy_node/dev "/dev/input/js0" +
+rosrun joy joy_node  +
+rostopic echo joy +
